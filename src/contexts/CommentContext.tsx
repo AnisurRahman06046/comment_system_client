@@ -1,8 +1,10 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as commentService from '../services/commentService';
 import type { Comment, SortType, ReactionType } from '../types';
-import { SORT_TYPES, DEFAULT_PAGE_SIZE } from '../utils/constants';
+import { SORT_TYPES, DEFAULT_PAGE_SIZE, SOCKET_EVENTS } from '../utils/constants';
 import { APIError } from '../services/api';
+import { useSocket } from './SocketContext';
+import { useAuth } from './AuthContext';
 
 interface CommentContextType {
   // State
@@ -31,12 +33,54 @@ interface CommentProviderProps {
 }
 
 export const CommentProvider = ({ children }: CommentProviderProps) => {
+  const { socket } = useSocket();
+  const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [sortBy, setSortByState] = useState<SortType>(SORT_TYPES.NEWEST as SortType);
+
+  // Socket event listeners for real-time updates
+  useEffect(() => {
+    if (!socket) return;
+
+    // Listen for new comments (from other users)
+    socket.on(SOCKET_EVENTS.COMMENT_NEW, ({ comment }: { comment: Comment }) => {
+      // Don't add if it's from current user (already added optimistically)
+      if (comment.author._id !== user?._id) {
+        setComments((prev) => [comment, ...prev]);
+      }
+    });
+
+    // Listen for comment updates
+    socket.on(SOCKET_EVENTS.COMMENT_UPDATE, ({ comment }: { comment: Comment }) => {
+      setComments((prev) =>
+        prev.map((c) => (c._id === comment._id ? comment : c))
+      );
+    });
+
+    // Listen for comment deletes
+    socket.on(SOCKET_EVENTS.COMMENT_DELETE, ({ commentId }: { commentId: string }) => {
+      setComments((prev) => prev.filter((c) => c._id !== commentId));
+    });
+
+    // Listen for reaction updates
+    socket.on(SOCKET_EVENTS.COMMENT_REACTION, ({ comment }: { comment: Comment }) => {
+      setComments((prev) =>
+        prev.map((c) => (c._id === comment._id ? comment : c))
+      );
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      socket.off(SOCKET_EVENTS.COMMENT_NEW);
+      socket.off(SOCKET_EVENTS.COMMENT_UPDATE);
+      socket.off(SOCKET_EVENTS.COMMENT_DELETE);
+      socket.off(SOCKET_EVENTS.COMMENT_REACTION);
+    };
+  }, [socket, user]);
 
   /**
    * Fetch comments with pagination and sorting
