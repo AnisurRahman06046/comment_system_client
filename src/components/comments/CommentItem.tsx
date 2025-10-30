@@ -22,6 +22,7 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact, isReply = false }: Co
   const [editContent, setEditContent] = useState(comment.content);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyRefreshTrigger, setReplyRefreshTrigger] = useState(0);
 
   const isAuthor = user?._id === comment.author._id;
   const initials = getInitials(comment.author.firstName, comment.author.lastName);
@@ -44,8 +45,12 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact, isReply = false }: Co
   };
 
   const handleReplySubmit = async (content: string) => {
-    await addComment(content, comment._id);
-    setShowReplyForm(false);
+    const reply = await addComment(content, comment._id);
+    if (reply) {
+      setShowReplyForm(false);
+      // Trigger refresh of replies list
+      setReplyRefreshTrigger((prev) => prev + 1);
+    }
   };
 
   return (
@@ -129,11 +134,15 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact, isReply = false }: Co
           {/* Like Button */}
           <button
             onClick={() => onReact(comment._id, REACTION_TYPES.LIKE)}
-            className="flex items-center space-x-1 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+            className={`flex items-center space-x-1 text-sm transition-colors ${
+              comment.userReaction === REACTION_TYPES.LIKE
+                ? 'text-blue-600 font-semibold'
+                : 'text-gray-600 hover:text-blue-600'
+            }`}
           >
             <svg
               className="w-5 h-5"
-              fill="none"
+              fill={comment.userReaction === REACTION_TYPES.LIKE ? 'currentColor' : 'none'}
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
@@ -150,11 +159,15 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact, isReply = false }: Co
           {/* Dislike Button */}
           <button
             onClick={() => onReact(comment._id, REACTION_TYPES.DISLIKE)}
-            className="flex items-center space-x-1 text-sm text-gray-600 hover:text-red-600 transition-colors"
+            className={`flex items-center space-x-1 text-sm transition-colors ${
+              comment.userReaction === REACTION_TYPES.DISLIKE
+                ? 'text-red-600 font-semibold'
+                : 'text-gray-600 hover:text-red-600'
+            }`}
           >
             <svg
               className="w-5 h-5"
-              fill="none"
+              fill={comment.userReaction === REACTION_TYPES.DISLIKE ? 'currentColor' : 'none'}
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
@@ -205,7 +218,7 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact, isReply = false }: Co
       )}
 
       {/* Replies List - Only show for top-level comments */}
-      {!isReply && <RepliesList parentCommentId={comment._id} />}
+      {!isReply && <RepliesList parentCommentId={comment._id} refreshTrigger={replyRefreshTrigger} />}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

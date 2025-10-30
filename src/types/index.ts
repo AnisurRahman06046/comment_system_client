@@ -35,6 +35,7 @@ export interface Comment {
   author: User;
   likesCount: number;
   dislikesCount: number;
+  userReaction?: ReactionType | null;
   parentComment: string | null;
   createdAt: string;
   updatedAt: string;

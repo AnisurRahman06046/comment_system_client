@@ -7,9 +7,10 @@ import CommentItem from './CommentItem';
 interface RepliesListProps {
   parentCommentId: string;
   replyCount?: number;
+  refreshTrigger?: number;
 }
 
-const RepliesList = ({ parentCommentId }: RepliesListProps) => {
+const RepliesList = ({ parentCommentId, refreshTrigger }: RepliesListProps) => {
   const { editComment, removeComment, reactToComment } = useComments();
   const [replies, setReplies] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,6 +48,14 @@ const RepliesList = ({ parentCommentId }: RepliesListProps) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showReplies]);
+
+  // Refetch replies when refreshTrigger changes (new reply added)
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0 && showReplies) {
+      fetchReplies(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const handleToggleReplies = () => {
     setShowReplies(!showReplies);
