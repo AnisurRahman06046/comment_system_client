@@ -2,6 +2,8 @@
 
 A modern, real-time comment system built with React, TypeScript, and Tailwind CSS. Features include authentication, nested replies, reactions (like/dislike), sorting, pagination, and live WebSocket updates.
 
+## Livesite link : https://comment-system-demo.netlify.app
+
 ## Features
 
 ### Core Features
@@ -283,9 +285,9 @@ All forms use **React Hook Form + Zod** for validation:
 
 ## Environment Variables
 
-| Variable          | Description               | Default                        | Required |
-| ----------------- | ------------------------- | ------------------------------ | -------- |
-| `VITE_API_URL`    | Backend REST API base URL | `http://localhost:5000/api/v1` | Yes      |
+| Variable          | Description                                   | Default                        | Required |
+| ----------------- | --------------------------------------------- | ------------------------------ | -------- |
+| `VITE_API_URL`    | Backend REST API base URL                     | `http://localhost:5000/api/v1` | Yes      |
 | `VITE_SOCKET_URL` | Socket.io server URL (use http://, not ws://) | `http://localhost:5000`        | Yes      |
 
 **Note:** Socket.io uses HTTP URLs and automatically upgrades to WebSocket protocol (`ws://`). Don't use `ws://` directly.
