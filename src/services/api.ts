@@ -5,13 +5,18 @@ import type { ApiError, ApiResponse } from '../types';
  * Custom error class for API errors
  */
 export class APIError extends Error {
+  status: number;
+  errors?: Record<string, string[]>;
+
   constructor(
-    public status: number,
-    public message: string,
-    public errors?: Record<string, string[]>
+    status: number,
+    message: string,
+    errors?: Record<string, string[]>
   ) {
     super(message);
     this.name = 'APIError';
+    this.status = status;
+    this.errors = errors;
   }
 }
 
@@ -35,10 +40,9 @@ export const apiFetch = async <T = unknown>(
   // Get auth token
   const token = getAuthToken();
 
-  // Merge headers
-  const headers: HeadersInit = {
+  // Build headers object
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
   };
 
   // Add auth token if available
@@ -49,7 +53,10 @@ export const apiFetch = async <T = unknown>(
   // Merge options
   const config: RequestInit = {
     ...options,
-    headers,
+    headers: {
+      ...headers,
+      ...(options.headers as Record<string, string>),
+    },
   };
 
   try {
