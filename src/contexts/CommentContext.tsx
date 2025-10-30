@@ -44,42 +44,67 @@ export const CommentProvider = ({ children }: CommentProviderProps) => {
 
   // Socket event listeners for real-time updates
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.log('⚠️ Socket not available in CommentContext');
+      return;
+    }
 
-    // Listen for new comments (from other users)
-    socket.on(SOCKET_EVENTS.COMMENT_NEW, ({ comment }: { comment: Comment }) => {
+    console.log('✅ Setting up socket listeners in CommentContext');
+
+    // Named handler functions to prevent removal by other components
+    const handleNewComment = ({ comment }: { comment: Comment }) => {
+      console.log('📝 [CommentContext] Real-time new comment event received:', comment._id, 'Author:', comment.author._id, 'Current user:', user?._id);
       // Don't add if it's from current user (already added optimistically)
       if (comment.author._id !== user?._id) {
+        console.log('Adding comment to list');
         setComments((prev) => [comment, ...prev]);
+      } else {
+        console.log('Skipping - own comment');
       }
-    });
-
-    // Listen for comment updates
-    socket.on(SOCKET_EVENTS.COMMENT_UPDATE, ({ comment }: { comment: Comment }) => {
-      setComments((prev) =>
-        prev.map((c) => (c._id === comment._id ? comment : c))
-      );
-    });
-
-    // Listen for comment deletes
-    socket.on(SOCKET_EVENTS.COMMENT_DELETE, ({ commentId }: { commentId: string }) => {
-      setComments((prev) => prev.filter((c) => c._id !== commentId));
-    });
-
-    // Listen for reaction updates
-    socket.on(SOCKET_EVENTS.COMMENT_REACTION, ({ comment }: { comment: Comment }) => {
-      setComments((prev) =>
-        prev.map((c) => (c._id === comment._id ? comment : c))
-      );
-    });
-
-    // Cleanup listeners on unmount
-    return () => {
-      socket.off(SOCKET_EVENTS.COMMENT_NEW);
-      socket.off(SOCKET_EVENTS.COMMENT_UPDATE);
-      socket.off(SOCKET_EVENTS.COMMENT_DELETE);
-      socket.off(SOCKET_EVENTS.COMMENT_REACTION);
     };
+
+    const handleUpdateComment = ({ comment }: { comment: Comment }) => {
+      console.log('✏️ [CommentContext] Real-time update event received:', comment._id);
+      setComments((prev) =>
+        prev.map((c) => (c._id === comment._id ? comment : c))
+      );
+    };
+
+    const handleDeleteComment = ({ commentId }: { commentId: string }) => {
+      console.log('🗑️ [CommentContext] Real-time delete event received:', commentId);
+      setComments((prev) => {
+        const filtered = prev.filter((c) => c._id !== commentId);
+        console.log(`[CommentContext] Filtering comments: before=${prev.length}, after=${filtered.length}`);
+        return filtered;
+      });
+    };
+
+    const handleReactionComment = ({ comment }: { comment: Comment }) => {
+      console.log('❤️ [CommentContext] Real-time reaction event received:', comment._id);
+      setComments((prev) =>
+        prev.map((c) => (c._id === comment._id ? comment : c))
+      );
+    };
+
+    // Register listeners with named functions
+    socket.on(SOCKET_EVENTS.COMMENT_NEW, handleNewComment);
+    socket.on(SOCKET_EVENTS.COMMENT_UPDATE, handleUpdateComment);
+    socket.on(SOCKET_EVENTS.COMMENT_DELETE, handleDeleteComment);
+    socket.on(SOCKET_EVENTS.COMMENT_REACTION, handleReactionComment);
+
+    // Cleanup - remove ONLY our specific handlers
+    return () => {
+      console.log('🧹 Cleaning up socket listeners in CommentContext');
+      socket.off(SOCKET_EVENTS.COMMENT_NEW, handleNewComment);
+      socket.off(SOCKET_EVENTS.COMMENT_UPDATE, handleUpdateComment);
+      socket.off(SOCKET_EVENTS.COMMENT_DELETE, handleDeleteComment);
+      socket.off(SOCKET_EVENTS.COMMENT_REACTION, handleReactionComment);
+    };
+  }, [socket, user]);
+
+  // Debug: Log when socket or user changes
+  useEffect(() => {
+    console.log('🔍 Socket status:', socket ? 'Connected' : 'Not connected', 'User:', user?._id);
   }, [socket, user]);
 
   /**

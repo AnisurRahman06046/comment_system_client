@@ -64,45 +64,52 @@ const RepliesList = ({ parentCommentId, refreshTrigger }: RepliesListProps) => {
 
   // Socket event listeners for real-time reply updates
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !showReplies) return;
 
-    // Listen for new replies to this parent comment
-    socket.on(SOCKET_EVENTS.COMMENT_REPLY, ({ comment, parentCommentId: replyParentId }: { comment: Comment; parentCommentId: string }) => {
+    const handleReply = ({ comment, parentCommentId: replyParentId }: { comment: Comment; parentCommentId: string }) => {
       // Only add if it's a reply to this specific parent comment
       if (replyParentId === parentCommentId && comment.author._id !== user?._id) {
         setReplies((prev) => [comment, ...prev]);
       }
-    });
+    };
 
-    // Listen for reply updates
-    socket.on(SOCKET_EVENTS.COMMENT_UPDATE, ({ comment }: { comment: Comment }) => {
+    const handleUpdate = ({ comment }: { comment: Comment }) => {
       // Check if this updated comment is in our replies
       setReplies((prev) =>
         prev.map((reply) => (reply._id === comment._id ? comment : reply))
       );
-    });
+    };
 
-    // Listen for reply deletes
-    socket.on(SOCKET_EVENTS.COMMENT_DELETE, ({ commentId }: { commentId: string }) => {
-      setReplies((prev) => prev.filter((reply) => reply._id !== commentId));
-    });
+    const handleDelete = ({ commentId }: { commentId: string }) => {
+      console.log('🗑️ [RepliesList] Real-time delete event received for reply:', commentId);
+      setReplies((prev) => {
+        const filtered = prev.filter((reply) => reply._id !== commentId);
+        console.log(`[RepliesList] Filtering replies: before=${prev.length}, after=${filtered.length}, deleted=${commentId}`);
+        return filtered;
+      });
+    };
 
-    // Listen for reply reactions
-    socket.on(SOCKET_EVENTS.COMMENT_REACTION, ({ comment }: { comment: Comment }) => {
+    const handleReaction = ({ comment }: { comment: Comment }) => {
       // Update reaction counts for replies in real-time
       setReplies((prev) =>
         prev.map((reply) => (reply._id === comment._id ? comment : reply))
       );
-    });
+    };
+
+    // Register listeners
+    socket.on(SOCKET_EVENTS.COMMENT_REPLY, handleReply);
+    socket.on(SOCKET_EVENTS.COMMENT_UPDATE, handleUpdate);
+    socket.on(SOCKET_EVENTS.COMMENT_DELETE, handleDelete);
+    socket.on(SOCKET_EVENTS.COMMENT_REACTION, handleReaction);
 
     // Cleanup listeners
     return () => {
-      socket.off(SOCKET_EVENTS.COMMENT_REPLY);
-      socket.off(SOCKET_EVENTS.COMMENT_UPDATE);
-      socket.off(SOCKET_EVENTS.COMMENT_DELETE);
-      socket.off(SOCKET_EVENTS.COMMENT_REACTION);
+      socket.off(SOCKET_EVENTS.COMMENT_REPLY, handleReply);
+      socket.off(SOCKET_EVENTS.COMMENT_UPDATE, handleUpdate);
+      socket.off(SOCKET_EVENTS.COMMENT_DELETE, handleDelete);
+      socket.off(SOCKET_EVENTS.COMMENT_REACTION, handleReaction);
     };
-  }, [socket, parentCommentId, user]);
+  }, [socket, parentCommentId, user, showReplies]);
 
   const handleToggleReplies = () => {
     setShowReplies(!showReplies);
