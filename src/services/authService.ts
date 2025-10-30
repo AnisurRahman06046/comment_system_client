@@ -1,31 +1,65 @@
 import { post, get } from './api';
 import { API_ENDPOINTS, STORAGE_KEYS } from '../utils/constants';
-import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types';
+import type { LoginCredentials, RegisterData, User } from '../types';
+
+interface LoginResponse {
+  token: string;
+}
+
+interface RegisterResponse {
+  _id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
 
 /**
  * Login user
  */
-export const login = async (credentials: LoginCredentials): Promise<AuthResponse['data']> => {
-  const data = await post<AuthResponse['data']>(API_ENDPOINTS.AUTH.LOGIN, credentials);
+export const login = async (credentials: LoginCredentials): Promise<{ user: User; token: string }> => {
+  // Step 1: Login and get token
+  const loginData = await post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
 
-  // Store token and user in localStorage
-  localStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
+  // Store token temporarily
+  localStorage.setItem(STORAGE_KEYS.TOKEN, loginData.token);
 
-  return data;
+  // Step 2: Fetch user data using the token
+  const user = await get<User>(API_ENDPOINTS.AUTH.ME);
+
+  // Store user in localStorage
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+
+  return { user, token: loginData.token };
 };
 
 /**
  * Register new user
  */
-export const register = async (userData: RegisterData): Promise<AuthResponse['data']> => {
-  const data = await post<AuthResponse['data']>(API_ENDPOINTS.AUTH.REGISTER, userData);
+export const register = async (userData: RegisterData): Promise<{ user: User; token: string }> => {
+  // Step 1: Register user (returns user data, no token)
+  const registerData = await post<RegisterResponse>(API_ENDPOINTS.AUTH.REGISTER, userData);
 
-  // Store token and user in localStorage
-  localStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
+  // Step 2: Login to get token
+  const loginData = await post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, {
+    email: userData.email,
+    password: userData.password,
+  });
 
-  return data;
+  // Store token
+  localStorage.setItem(STORAGE_KEYS.TOKEN, loginData.token);
+
+  // Step 3: Construct user object
+  const user: User = {
+    _id: registerData._id,
+    email: registerData.email,
+    firstName: registerData.firstName,
+    lastName: registerData.lastName,
+  };
+
+  // Store user in localStorage
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+
+  return { user, token: loginData.token };
 };
 
 /**
