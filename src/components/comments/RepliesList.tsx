@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useComments } from '../../hooks/useComments';
+import { useSocket } from '../../hooks/useSocket';
+import { useAuth } from '../../hooks/useAuth';
 import * as commentService from '../../services/commentService';
 import type { Comment } from '../../types';
+import { SOCKET_EVENTS } from '../../utils/constants';
 import CommentItem from './CommentItem';
 
 interface RepliesListProps {
@@ -12,6 +15,8 @@ interface RepliesListProps {
 
 const RepliesList = ({ parentCommentId, refreshTrigger }: RepliesListProps) => {
   const { editComment, removeComment, reactToComment } = useComments();
+  const { socket } = useSocket();
+  const { user } = useAuth();
   const [replies, setReplies] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -56,6 +61,48 @@ const RepliesList = ({ parentCommentId, refreshTrigger }: RepliesListProps) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]);
+
+  // Socket event listeners for real-time reply updates
+  useEffect(() => {
+    if (!socket) return;
+
+    // Listen for new replies to this parent comment
+    socket.on(SOCKET_EVENTS.COMMENT_REPLY, ({ comment, parentCommentId: replyParentId }: { comment: Comment; parentCommentId: string }) => {
+      // Only add if it's a reply to this specific parent comment
+      if (replyParentId === parentCommentId && comment.author._id !== user?._id) {
+        setReplies((prev) => [comment, ...prev]);
+      }
+    });
+
+    // Listen for reply updates
+    socket.on(SOCKET_EVENTS.COMMENT_UPDATE, ({ comment }: { comment: Comment }) => {
+      // Check if this updated comment is in our replies
+      setReplies((prev) =>
+        prev.map((reply) => (reply._id === comment._id ? comment : reply))
+      );
+    });
+
+    // Listen for reply deletes
+    socket.on(SOCKET_EVENTS.COMMENT_DELETE, ({ commentId }: { commentId: string }) => {
+      setReplies((prev) => prev.filter((reply) => reply._id !== commentId));
+    });
+
+    // Listen for reply reactions
+    socket.on(SOCKET_EVENTS.COMMENT_REACTION, ({ comment }: { comment: Comment }) => {
+      // Update reaction counts for replies in real-time
+      setReplies((prev) =>
+        prev.map((reply) => (reply._id === comment._id ? comment : reply))
+      );
+    });
+
+    // Cleanup listeners
+    return () => {
+      socket.off(SOCKET_EVENTS.COMMENT_REPLY);
+      socket.off(SOCKET_EVENTS.COMMENT_UPDATE);
+      socket.off(SOCKET_EVENTS.COMMENT_DELETE);
+      socket.off(SOCKET_EVENTS.COMMENT_REACTION);
+    };
+  }, [socket, parentCommentId, user]);
 
   const handleToggleReplies = () => {
     setShowReplies(!showReplies);

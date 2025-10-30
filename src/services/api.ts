@@ -57,6 +57,7 @@ export const apiFetch = async <T = unknown>(
       ...headers,
       ...(options.headers as Record<string, string>),
     },
+    credentials: 'include', // Include credentials for CORS
   };
 
   try {
