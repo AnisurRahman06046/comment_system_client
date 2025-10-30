@@ -49,9 +49,13 @@ A modern, real-time comment system built with React, TypeScript, and Tailwind CS
 
 1. **Clone the repository and navigate to frontend:**
 
-   ```bash
-   cd mern-comments-system/frontend
-   ```
+```bash
+  git clone https://github.com/AnisurRahman06046/comment_system_client.git
+```
+
+```bash
+cd comment_system_client
+```
 
 2. **Install dependencies:**
 
