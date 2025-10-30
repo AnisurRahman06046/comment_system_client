@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import * as commentService from '../services/commentService';
 import type { Comment, SortType, ReactionType } from '../types';
 import { SORT_TYPES, DEFAULT_PAGE_SIZE, SOCKET_EVENTS } from '../utils/constants';
