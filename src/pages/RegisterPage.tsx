@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { registerSchema, type RegisterFormData } from '../utils/validators';
 import { APIError } from '../services/api';
+import { showSuccessToast, showErrorToast } from '../utils/toast';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -26,12 +27,16 @@ const RegisterPage = () => {
 
     try {
       await registerUser(data);
+      showSuccessToast('Account created successfully! Welcome!');
       navigate('/comments');
     } catch (err) {
       if (err instanceof APIError) {
         setError(err.message);
+        showErrorToast(err.message);
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        const errorMsg = 'An unexpected error occurred. Please try again.';
+        setError(errorMsg);
+        showErrorToast(errorMsg);
       }
     } finally {
       setLoading(false);

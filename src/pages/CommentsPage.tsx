@@ -4,6 +4,7 @@ import AddCommentForm from '../components/comments/AddCommentForm';
 import CommentList from '../components/comments/CommentList';
 import SortDropdown from '../components/comments/SortDropdown';
 import LoadMoreButton from '../components/comments/LoadMoreButton';
+import { showSuccessToast, showErrorToast } from '../utils/toast';
 
 const CommentsPage = () => {
   const {
@@ -28,15 +29,30 @@ const CommentsPage = () => {
   }, [sortBy]);
 
   const handleAddComment = async (content: string) => {
-    await addComment(content);
+    const result = await addComment(content);
+    if (result) {
+      showSuccessToast('Comment posted successfully!');
+    } else {
+      showErrorToast('Failed to post comment');
+    }
   };
 
   const handleEditComment = async (id: string, content: string) => {
-    await editComment(id, content);
+    const result = await editComment(id, content);
+    if (result) {
+      showSuccessToast('Comment updated successfully!');
+    } else {
+      showErrorToast('Failed to update comment');
+    }
   };
 
   const handleDeleteComment = async (id: string) => {
-    await removeComment(id);
+    const success = await removeComment(id);
+    if (success) {
+      showSuccessToast('Comment deleted successfully!');
+    } else {
+      showErrorToast('Failed to delete comment');
+    }
   };
 
   const handleReaction = async (id: string, type: 'like' | 'dislike') => {

@@ -44,43 +44,27 @@ export const CommentProvider = ({ children }: CommentProviderProps) => {
 
   // Socket event listeners for real-time updates
   useEffect(() => {
-    if (!socket) {
-      console.log('⚠️ Socket not available in CommentContext');
-      return;
-    }
-
-    console.log('✅ Setting up socket listeners in CommentContext');
+    if (!socket) return;
 
     // Named handler functions to prevent removal by other components
     const handleNewComment = ({ comment }: { comment: Comment }) => {
-      console.log('📝 [CommentContext] Real-time new comment event received:', comment._id, 'Author:', comment.author._id, 'Current user:', user?._id);
       // Don't add if it's from current user (already added optimistically)
       if (comment.author._id !== user?._id) {
-        console.log('Adding comment to list');
         setComments((prev) => [comment, ...prev]);
-      } else {
-        console.log('Skipping - own comment');
       }
     };
 
     const handleUpdateComment = ({ comment }: { comment: Comment }) => {
-      console.log('✏️ [CommentContext] Real-time update event received:', comment._id);
       setComments((prev) =>
         prev.map((c) => (c._id === comment._id ? comment : c))
       );
     };
 
     const handleDeleteComment = ({ commentId }: { commentId: string }) => {
-      console.log('🗑️ [CommentContext] Real-time delete event received:', commentId);
-      setComments((prev) => {
-        const filtered = prev.filter((c) => c._id !== commentId);
-        console.log(`[CommentContext] Filtering comments: before=${prev.length}, after=${filtered.length}`);
-        return filtered;
-      });
+      setComments((prev) => prev.filter((c) => c._id !== commentId));
     };
 
     const handleReactionComment = ({ comment }: { comment: Comment }) => {
-      console.log('❤️ [CommentContext] Real-time reaction event received:', comment._id);
       setComments((prev) =>
         prev.map((c) => (c._id === comment._id ? comment : c))
       );
@@ -94,17 +78,11 @@ export const CommentProvider = ({ children }: CommentProviderProps) => {
 
     // Cleanup - remove ONLY our specific handlers
     return () => {
-      console.log('🧹 Cleaning up socket listeners in CommentContext');
       socket.off(SOCKET_EVENTS.COMMENT_NEW, handleNewComment);
       socket.off(SOCKET_EVENTS.COMMENT_UPDATE, handleUpdateComment);
       socket.off(SOCKET_EVENTS.COMMENT_DELETE, handleDeleteComment);
       socket.off(SOCKET_EVENTS.COMMENT_REACTION, handleReactionComment);
     };
-  }, [socket, user]);
-
-  // Debug: Log when socket or user changes
-  useEffect(() => {
-    console.log('🔍 Socket status:', socket ? 'Connected' : 'Not connected', 'User:', user?._id);
   }, [socket, user]);
 
   /**

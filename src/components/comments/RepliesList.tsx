@@ -81,12 +81,7 @@ const RepliesList = ({ parentCommentId, refreshTrigger }: RepliesListProps) => {
     };
 
     const handleDelete = ({ commentId }: { commentId: string }) => {
-      console.log('🗑️ [RepliesList] Real-time delete event received for reply:', commentId);
-      setReplies((prev) => {
-        const filtered = prev.filter((reply) => reply._id !== commentId);
-        console.log(`[RepliesList] Filtering replies: before=${prev.length}, after=${filtered.length}, deleted=${commentId}`);
-        return filtered;
-      });
+      setReplies((prev) => prev.filter((reply) => reply._id !== commentId));
     };
 
     const handleReaction = ({ comment }: { comment: Comment }) => {

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { loginSchema, type LoginFormData } from '../utils/validators';
 import { APIError } from '../services/api';
+import { showSuccessToast, showErrorToast } from '../utils/toast';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -26,12 +27,16 @@ const LoginPage = () => {
 
     try {
       await login(data);
+      showSuccessToast('Login successful! Welcome back.');
       navigate('/comments');
     } catch (err) {
       if (err instanceof APIError) {
         setError(err.message);
+        showErrorToast(err.message);
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        const errorMsg = 'An unexpected error occurred. Please try again.';
+        setError(errorMsg);
+        showErrorToast(errorMsg);
       }
     } finally {
       setLoading(false);

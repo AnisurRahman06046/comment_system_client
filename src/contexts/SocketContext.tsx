@@ -38,38 +38,25 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
     // Connection event handlers
     socketInstance.on('connect', () => {
-      console.log('✅ Socket connected:', socketInstance.id);
       setConnected(true);
     });
 
-    socketInstance.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
+    socketInstance.on('disconnect', () => {
       setConnected(false);
     });
 
-    socketInstance.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+    socketInstance.on('connect_error', () => {
       setConnected(false);
     });
 
-    socketInstance.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+    socketInstance.on('reconnect', () => {
       setConnected(true);
-    });
-
-    socketInstance.on('reconnect_error', (error) => {
-      console.error('Socket reconnection error:', error);
-    });
-
-    socketInstance.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed');
     });
 
     setSocket(socketInstance);
 
     // Cleanup on unmount
     return () => {
-      console.log('Disconnecting socket...');
       socketInstance.disconnect();
     };
   }, []);
