@@ -1,21 +1,27 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useComments } from '../../hooks/useComments';
 import type { Comment } from '../../types';
 import { formatDate, getInitials } from '../../utils/helpers';
 import { REACTION_TYPES } from '../../utils/constants';
+import ReplyForm from './ReplyForm';
+import RepliesList from './RepliesList';
 
 interface CommentItemProps {
   comment: Comment;
   onEdit: (id: string, content: string) => void;
   onDelete: (id: string) => void;
   onReact: (id: string, type: 'like' | 'dislike') => void;
+  isReply?: boolean;
 }
 
-const CommentItem = ({ comment, onEdit, onDelete, onReact }: CommentItemProps) => {
+const CommentItem = ({ comment, onEdit, onDelete, onReact, isReply = false }: CommentItemProps) => {
   const { user } = useAuth();
+  const { addComment } = useComments();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReplyForm, setShowReplyForm] = useState(false);
 
   const isAuthor = user?._id === comment.author._id;
   const initials = getInitials(comment.author.firstName, comment.author.lastName);
@@ -35,6 +41,11 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact }: CommentItemProps) =
   const handleDelete = () => {
     onDelete(comment._id);
     setShowDeleteConfirm(false);
+  };
+
+  const handleReplySubmit = async (content: string) => {
+    await addComment(content, comment._id);
+    setShowReplyForm(false);
   };
 
   return (
@@ -112,7 +123,7 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact }: CommentItemProps) =
         <p className="text-gray-800 mb-3 whitespace-pre-wrap">{comment.content}</p>
       )}
 
-      {/* Reaction Buttons */}
+      {/* Reaction Buttons & Reply */}
       {!isEditing && (
         <div className="flex items-center space-x-4 pt-2 border-t border-gray-100">
           {/* Like Button */}
@@ -156,8 +167,45 @@ const CommentItem = ({ comment, onEdit, onDelete, onReact }: CommentItemProps) =
             </svg>
             <span className="font-medium">{comment.dislikesCount}</span>
           </button>
+
+          {/* Reply Button - Only show for top-level comments */}
+          {!isReply && (
+            <button
+              onClick={() => setShowReplyForm(!showReplyForm)}
+              className="flex items-center space-x-1 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                />
+              </svg>
+              <span className="font-medium">Reply</span>
+            </button>
+          )}
         </div>
       )}
+
+      {/* Reply Form */}
+      {showReplyForm && !isReply && (
+        <div className="ml-12 mt-3">
+          <ReplyForm
+            onSubmit={handleReplySubmit}
+            onCancel={() => setShowReplyForm(false)}
+            parentAuthorName={`${comment.author.firstName} ${comment.author.lastName}`}
+          />
+        </div>
+      )}
+
+      {/* Replies List - Only show for top-level comments */}
+      {!isReply && <RepliesList parentCommentId={comment._id} />}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

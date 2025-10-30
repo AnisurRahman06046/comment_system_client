@@ -40,7 +40,7 @@ const ReplyForm = ({ onSubmit, onCancel, parentAuthorName }: ReplyFormProps) => 
   return (
     <form
       onSubmit={handleSubmit(handleFormSubmit)}
-      className="bg-gray-50 rounded-lg border border-gray-200 p-3 ml-12 mt-2"
+      className="bg-blue-50 rounded-lg border border-blue-200 p-3 mt-2"
     >
       <div className="space-y-2">
         <p className="text-xs text-gray-600">
